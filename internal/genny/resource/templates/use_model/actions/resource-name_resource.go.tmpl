@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/gobuffalo/buffalo"
-	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/x/responder"
 
+	"{{.opts.App.DbPkg}}"
 	"{{.opts.App.ModelsPkg}}"
 )
 
@@ -32,7 +32,7 @@ type {{.opts.Name.Resource}}Resource struct {
 // GET /{{.opts.Name.URL}}
 func (v {{.opts.Name.Resource}}Resource) List(c buffalo.Context) error {
 	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
+	tx, ok := c.Value("tx").(*db.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
@@ -41,16 +41,17 @@ func (v {{.opts.Name.Resource}}Resource) List(c buffalo.Context) error {
 
 	// Paginate results. Params "page" and "per_page" control pagination.
 	// Default values are "page=1" and "per_page=20".
-	q := tx.PaginateFromParams(c.Params())
+	pagination := db.NewPaginatorFromParams(c.Params())
+
 
 	// Retrieve all {{.opts.Model.Group}} from the DB
-	if err := q.All({{.opts.Model.VarCasePlural}}); err != nil {
+  if err := tx.Scopes(tx.Paginate({{.opts.Model.VarCasePlural}}, pagination)).Find({{.opts.Model.VarCasePlural}}).Error; err != nil {
 		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// Add the paginator to the context so it can be used in the template.
-		c.Set("pagination", q.Paginator)
+		c.Set("pagination", pagination)
 
 		c.Set("{{.opts.Model.VarCasePlural}}", {{.opts.Model.VarCasePlural}})
 		return c.Render(http.StatusOK, r.HTML("{{.opts.Name.File.Pluralize}}/index.plush.html"))
@@ -65,7 +66,7 @@ func (v {{.opts.Name.Resource}}Resource) List(c buffalo.Context) error {
 // the path GET /{{.opts.Name.URL}}/{{"{"}}{{.opts.Name.ParamID}}}
 func (v {{.opts.Name.Resource}}Resource) Show(c buffalo.Context) error {
 	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
+	tx, ok := c.Value("tx").(*db.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
@@ -74,7 +75,7 @@ func (v {{.opts.Name.Resource}}Resource) Show(c buffalo.Context) error {
 	{{.opts.Model.VarCaseSingle}} := &models.{{.opts.Model.Proper}}{}
 
 	// To find the {{.opts.Model.Proper}} the parameter {{.opts.Name.ParamID}} is used.
-	if err := tx.Find({{.opts.Model.VarCaseSingle}}, c.Param("{{.opts.Name.ParamID}}")); err != nil {
+	if err := tx.First({{.opts.Model.VarCaseSingle}}, c.Param("{{.opts.Name.ParamID}}")).Error; err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -111,7 +112,7 @@ func (v {{.opts.Name.Resource}}Resource) Create(c buffalo.Context) error {
 	}
 
 	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
+	tx, ok := c.Value("tx").(*db.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
@@ -141,7 +142,7 @@ func (v {{.opts.Name.Resource}}Resource) Create(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
-		c.Flash().Add("success", T.Translate(c, "{{.opts.Model.VarCaseSingle}}.created.success"))
+		c.Flash().Add("success", "{{.opts.Model.VarCaseSingle}} created successfully")
 
 		// and redirect to the show page
 		return c.Redirect(http.StatusSeeOther, "/{{.opts.Name.URL}}/%v", {{.opts.Model.VarCaseSingle}}.ID)
@@ -157,7 +158,7 @@ func (v {{.opts.Name.Resource}}Resource) Create(c buffalo.Context) error {
 // mapped to the path GET /{{.opts.Name.URL}}/{{"{"}}{{.opts.Name.ParamID}}}/edit
 func (v {{.opts.Name.Resource}}Resource) Edit(c buffalo.Context) error {
 	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
+	tx, ok := c.Value("tx").(*db.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
@@ -165,7 +166,7 @@ func (v {{.opts.Name.Resource}}Resource) Edit(c buffalo.Context) error {
 	// Allocate an empty {{.opts.Model.Proper}}
 	{{.opts.Model.VarCaseSingle}} := &models.{{.opts.Model.Proper}}{}
 
-	if err := tx.Find({{.opts.Model.VarCaseSingle}}, c.Param("{{.opts.Name.ParamID}}")); err != nil {
+	if err := tx.First({{.opts.Model.VarCaseSingle}}, c.Param("{{.opts.Name.ParamID}}")).Error; err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -178,7 +179,7 @@ func (v {{.opts.Name.Resource}}Resource) Edit(c buffalo.Context) error {
 // the path PUT /{{.opts.Name.URL}}/{{"{"}}{{.opts.Name.ParamID}}}
 func (v {{.opts.Name.Resource}}Resource) Update(c buffalo.Context) error {
 	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
+	tx, ok := c.Value("tx").(*db.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
@@ -186,7 +187,7 @@ func (v {{.opts.Name.Resource}}Resource) Update(c buffalo.Context) error {
 	// Allocate an empty {{.opts.Model.Proper}}
 	{{.opts.Model.VarCaseSingle}} := &models.{{.opts.Model.Proper}}{}
 
-	if err := tx.Find({{.opts.Model.VarCaseSingle}}, c.Param("{{.opts.Name.ParamID}}")); err != nil {
+	if err := tx.First({{.opts.Model.VarCaseSingle}}, c.Param("{{.opts.Name.ParamID}}")).Error; err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -219,7 +220,7 @@ func (v {{.opts.Name.Resource}}Resource) Update(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
-		c.Flash().Add("success", T.Translate(c, "{{.opts.Model.VarCaseSingle}}.updated.success"))
+		c.Flash().Add("success", "{{.opts.Model.VarCaseSingle}} updated successfully")
 
 		// and redirect to the show page
 		return c.Redirect(http.StatusSeeOther, "/{{.opts.Name.URL}}/%v", {{.opts.Model.VarCaseSingle}}.ID)
@@ -234,7 +235,7 @@ func (v {{.opts.Name.Resource}}Resource) Update(c buffalo.Context) error {
 // to the path DELETE /{{.opts.Name.URL}}/{{"{"}}{{.opts.Name.ParamID}}}
 func (v {{.opts.Name.Resource}}Resource) Destroy(c buffalo.Context) error {
 	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
+	tx, ok := c.Value("tx").(*db.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
@@ -243,17 +244,17 @@ func (v {{.opts.Name.Resource}}Resource) Destroy(c buffalo.Context) error {
 	{{.opts.Model.VarCaseSingle}} := &models.{{.opts.Model.Proper}}{}
 
 	// To find the {{.opts.Model.Proper}} the parameter {{.opts.Name.ParamID}} is used.
-	if err := tx.Find({{.opts.Model.VarCaseSingle}}, c.Param("{{.opts.Name.ParamID}}")); err != nil {
+	if err := tx.First({{.opts.Model.VarCaseSingle}}, c.Param("{{.opts.Name.ParamID}}")).Error; err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
-	if err := tx.Destroy({{.opts.Model.VarCaseSingle}}); err != nil {
+	if err := tx.Delete({{.opts.Model.VarCaseSingle}}).Error; err != nil {
 		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message
-		c.Flash().Add("success", T.Translate(c, "{{.opts.Model.VarCaseSingle}}.destroyed.success"))
+		c.Flash().Add("success", "{{.opts.Model.VarCaseSingle}} successfully deleted")
 
 		// Redirect to the index page
 		return c.Redirect(http.StatusSeeOther, "/{{.opts.Name.URL}}")

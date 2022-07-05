@@ -71,7 +71,7 @@ func New(opts *Options) (*genny.Generator, error) {
 	}
 	g.Transformer(gogen.TemplateTransformer(data, helpers))
 
-	g.RunFn(installPop(opts))
+	//g.RunFn(installPop(opts))
 
 	g.RunFn(addResource(pres))
 	return g, nil
