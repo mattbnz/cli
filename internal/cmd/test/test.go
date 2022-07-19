@@ -90,6 +90,7 @@ func findSchema() io.Reader {
 func testRunner(args []string) error {
 	var mFlag bool
 	var query string
+	var tags string
 
 	commandArgs := []string{}
 	packageArgs := []string{}
@@ -100,12 +101,14 @@ func testRunner(args []string) error {
 		case "-run", "-m":
 			query = args[index+1]
 			mFlag = true
+		case "-tags":
+			tags = args[index+1]
 		case "-v", "-timeout":
 			commandArgs = append(commandArgs, arg)
 		default:
 			if lastArg == "-timeout" {
 				commandArgs = append(commandArgs, arg)
-			} else if lastArg != "-run" && lastArg != "-m" {
+			} else if lastArg != "-run" && lastArg != "-m" && lastArg != "-tags" {
 				packageArgs = append(packageArgs, arg)
 			}
 		}
@@ -113,10 +116,11 @@ func testRunner(args []string) error {
 		lastArg = arg
 	}
 
-	cmd := newTestCmd(commandArgs)
+	cmd := newTestCmd(commandArgs, tags)
 	if mFlag {
 		return mFlagRunner{
 			query: query,
+			tags: tags,
 			args:  commandArgs,
 			pargs: packageArgs,
 		}.Run()
@@ -134,6 +138,7 @@ func testRunner(args []string) error {
 
 type mFlagRunner struct {
 	query string
+	tags	string
 	args  []string
 	pargs []string
 }
@@ -156,7 +161,7 @@ func (m mFlagRunner) Run() error {
 			continue
 		}
 
-		cmd := newTestCmd(m.args)
+		cmd := newTestCmd(m.args, m.tags)
 
 		p = strings.TrimPrefix(p, app.PackagePkg+string(filepath.Separator))
 		os.Chdir(p)
@@ -209,10 +214,10 @@ func testPackages(givenArgs []string) ([]string, error) {
 	return args, nil
 }
 
-func newTestCmd(args []string) *exec.Cmd {
+func newTestCmd(args []string, tags string) *exec.Cmd {
 	cargs := []string{"test", "-p", "1"}
 	app := meta.New(".")
-	cargs = append(cargs, "-tags", app.BuildTags("development").String())
+	cargs = append(cargs, "-tags", app.BuildTags("development", tags).String())
 	cargs = append(cargs, args...)
 	cmd := exec.Command(envy.Get("GO_BIN", "go"), cargs...)
 	cmd.Stdin = os.Stdin
