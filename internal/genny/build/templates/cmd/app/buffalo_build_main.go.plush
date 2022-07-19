@@ -10,18 +10,11 @@ import (
 	_ "<%= opts.PackagePkg %>/a"
 	_ "<%= opts.ActionsPkg %>"
 	<%= if (opts.WithGrifts) { %>
-	_ "<%= opts.GriftsPkg %>"
+	"<%= opts.GriftsPkg %>"
 	<% } %>
-<%= if (opts.WithPop) { %>
-	"<%= opts.ModelsPkg %>"
-	"<%= opts.PackagePkg %>/migrations"
-<% } %>
 
 	"github.com/gobuffalo/buffalo/runtime"
 	"github.com/gobuffalo/grift/grift"
-<%= if (opts.WithPop) { %>
-	"github.com/gobuffalo/pop/v6"
-<% } %>
 )
 
 func init() {
@@ -98,12 +91,8 @@ func printVersion() {
 
 <%= if (opts.WithPop) { %>
 func migrate() {
-	box, err := pop.NewMigrationBox(migrations.FS(), models.DB)
+	err := grifts.GormAutomigrate()
 	if err != nil {
-		log.Fatalf("Failed to unpack migrations: %s", err)
-	}
-
-	if err := box.Up(); err != nil {
 	log.Fatalf("Failed to run migrations: %s", err)
 	}
 }
