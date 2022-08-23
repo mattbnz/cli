@@ -30,7 +30,3 @@ require (
 	golang.org/x/tools v0.1.12
 	gopkg.in/yaml.v2 v2.4.0
 )
-
-replace github.com/gobuffalo/pop/v6 v6.0.4 => /home/matt/src/buffalo/pop
-
-replace github.com/gobuffalo/meta v0.3.1 => /home/matt/src/buffalo/meta
